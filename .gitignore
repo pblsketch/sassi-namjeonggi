@@ -1,0 +1,10 @@
+# 생성 원본(용량이 크다) — 게임은 assets/pt, assets/sc, assets/ui의 webp만 쓴다
+assets/raw/
+# 글꼴 원본(tools/build_fonts.py가 내려받는다)
+tools/fonts_src/
+# 테스트
+tests/node_modules/
+tests/shots/
+.test/
+# 작업 도구가 만드는 상태 파일
+.omc/

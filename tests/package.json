@@ -1,0 +1,13 @@
+{
+  "name": "sassi-jiwojin-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "node e2e.mjs phone && node e2e.mjs desktop",
+    "content": "node content.mjs",
+    "full": "node full.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
