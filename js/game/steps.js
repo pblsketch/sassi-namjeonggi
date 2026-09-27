@@ -216,8 +216,8 @@
     const trayEl = h('div', hint, h('div.row', people), acts);
     ctx.tray(trayEl);
 
-    // 고를 수 있는 인물: 지금까지 만난 인물 + 이 쪽의 인물
-    const ids = [...new Set([...Object.keys(PEOPLE).filter((id) => st.met[id]), ...pool])];
+    // 고를 수 있는 인물: 처음 읽기는 지금까지 만난 인물 + 이 쪽의 인물, 다시 읽기(복습)는 인물 전체 명단
+    const ids = review() ? Object.keys(PEOPLE) : [...new Set([...Object.keys(PEOPLE).filter((id) => st.met[id]), ...pool])];
     ids.sort((a, b) => Object.keys(PEOPLE).indexOf(a) - Object.keys(PEOPLE).indexOf(b));
     for (const id of ids) {
       const b = ui.personChip(id);
@@ -531,7 +531,8 @@
       await nextButton(ctx);
       return;
     }
-    addWords(shuffle(step.bank || []), true);
+    // 다시 읽기(복습)에서는 헷갈리는 낱말 카드(hard)를 더 넣는다
+    addWords(shuffle([...(step.bank || []), ...(review() ? step.hard || [] : [])]), true);
     update();
     await donePromise;
   };

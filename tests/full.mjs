@@ -171,6 +171,11 @@ async function solvePage(page, id, o) {
   const autoChips = await page.locator('.main-inner .auto .chip').count();
   if (o.mode === 'review') ok(autoChips === 0, id, `다시 읽기인데 자동 표시 얼굴이 ${autoChips}개 보임`);
   else if (autoN) ok(autoChips === autoN, id, `처음 읽기인데 자동 표시 얼굴이 ${autoChips}/${autoN}`);
+  // 복습 모드에서는 호칭을 인물 전체 명단에서 고른다
+  if (o.mode === 'review' && ans.length) {
+    const nAll = await page.evaluate(() => Object.keys(PEOPLE).length);
+    ok((await page.locator('.tray .person').count()) === nAll, id, `다시 읽기인데 인물 칸이 전체 명단(${nAll})이 아님`);
+  }
   let wrongPending = o.wrong && o.wrong.has('page') && ans.length >= 1;
   let revealWay = 0;
   const checkBtn = page.locator('.tray button', { hasText: '맞추어 보기' });
@@ -262,7 +267,9 @@ async function solveCase(page, id, o) {
   const clues = page.locator('.main-inner .clue');
   for (let i = 0; i < await clues.count(); i++) { await clues.nth(i).click(); await W(page, 40); }
   const words = (await page.locator('.tray .word').allTextContents()).map((s) => s.trim());
-  const need = [...(step.spots || []).flatMap((s) => s.words), ...(step.clues || []).flatMap((s) => s.words), ...(step.bank || [])];
+  const need = [...(step.spots || []).flatMap((s) => s.words), ...(step.clues || []).flatMap((s) => s.words), ...(step.bank || []), ...(o.mode === 'review' ? step.hard || [] : [])];
+  // 처음 읽기에는 헷갈리는 낱말(hard)이 나오면 안 된다
+  if (o.mode !== 'review') for (const w of step.hard || []) if (!need.includes(w)) ok(!words.includes(w), id, `처음 읽기인데 복습용 낱말 「${w}」이 나옴`);
   for (const w of need) ok(words.includes(w), id, `낱말 「${w}」을 줍지 못함`);
   if (o.mode === 'review') ok(await page.locator('.tray .word img').count() === 0, id, '다시 읽기인데 낱말에 얼굴이 보임');
   const keys = [...step.lines.join(' ').matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);

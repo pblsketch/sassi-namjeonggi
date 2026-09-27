@@ -383,6 +383,41 @@ mark.w { background: linear-gradient(transparent 55%, rgba(184,137,46,.45) 55%);
 .small { font-size: .85em; }
 .hide { display: none !important; }
 
+/* 휴대폰 세로(폭 600px 이하): 글자·줄 간격·막대·트레이를 한 단계씩 줄인다. 누르는 곳은 40px 이상 */
+@media (max-width: 600px) {
+  body { font-size: calc(15px * var(--fs)); line-height: 1.6; }
+  .main { padding: 10px 12px calc(var(--tray-h) + 20px); }
+  .topbar { gap: 6px; padding: 6px 10px; padding-top: max(6px, env(safe-area-inset-top)); }
+  .topbar .where strong { font-size: 1em; }
+  .icon-btn { width: 40px; height: 40px; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .btn { min-height: 42px; padding: .45em 1.05em; }
+  .btn.small { min-height: 38px; }
+  .scene { margin-bottom: 10px; }
+  .scene.short { aspect-ratio: 16 / 6; }
+  .leaf { padding: 14px 14px 12px; font-size: 1.04em; line-height: 1.8; }
+  .leaf::before { inset: 5px; }
+  .para { margin-bottom: .6em; }
+  .say, .frame-say { grid-template-columns: 38px 1fr; gap: 8px; }
+  .say .who img, .frame-say .who img { width: 38px; height: 38px; }
+  .restore { font-size: 1.04em; line-height: 2.1; }
+  .blank { min-height: 1.8em; }
+  .card { padding: 12px 14px; margin-bottom: 10px; }
+  .orig { padding: 12px 14px 10px; }
+  .orig .han { font-size: 1.22em; }
+  .spot { width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+  .clue { padding: 8px 10px; }
+  .tray { padding: 6px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .tray .hint-line { font-size: .8em; margin-bottom: 4px; }
+  .tray .scroll { gap: 6px; padding-bottom: 4px; }
+  .tray .actions { gap: 6px; margin-top: 2px; }
+  .person { width: 58px; font-size: .7em; padding: 3px 1px 2px; border-radius: 10px; }
+  .person img { width: 40px; height: 40px; }
+  .word { min-height: 38px; padding: 3px 10px; }
+  .slip { padding: 7px 9px; min-height: 42px; }
+  .bin { min-height: 120px; }
+}
+
 /* 가로로 짧은 휴대폰 */
 @media (max-height: 520px) and (orientation: landscape) {
   .scene { aspect-ratio: 21 / 8; }

@@ -63,7 +63,8 @@ const personOf = (() => {
 })();
 for (const s of steps.filter((x) => x.type === 'case')) {
   const collectable = new Set([...(s.spots || []).flatMap((x) => x.words), ...(s.clues || []).flatMap((x) => x.words)]);
-  const bank = new Set(s.bank || []);
+  // 다시 읽기(복습)에서 더하는 헷갈리는 낱말(hard)도 오답용이므로 함께 점검한다
+  const bank = new Set([...(s.bank || []), ...(s.hard || [])]);
   const keys = [...s.lines.join(' ').matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
   if (new Set(keys).size !== keys.length) bad(`${s.id}: 빈칸 이름이 겹침`);
   for (const k of keys) {
@@ -76,7 +77,7 @@ for (const s of steps.filter((x) => x.type === 'case')) {
     } else if (!collectable.has(def.word)) bad(`${s.id}: [${k}] 정답 낱말 「${def.word}」을 주울 수 없음`);
   }
   for (const k in s.blanks) if (!keys.includes(k)) bad(`${s.id}: 쓰이지 않는 빈칸 정의 ${k}`);
-  // 오답 낱말(bank)이 정답이 되어 버리지 않는지
+  // 오답 낱말(bank·hard)이 정답이 되어 버리지 않는지
   for (const w of bank) for (const k of keys) {
     const def = s.blanks[k];
     if (def && (def.person ? personOf(w) === def.person : w === def.word)) bad(`${s.id}: 오답용 낱말 「${w}」이 [${k}]의 정답이 됨`);
