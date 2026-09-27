@@ -13,6 +13,9 @@ PDIR = os.path.join(ROOT, "tools", "prompts")
 os.makedirs(PDIR, exist_ok=True)
 
 LINEUP = "design/style-samples/style_a_minhwa.png"
+# 장면 그림의 인물 참조: 흉배 없는 초상 4장. 화풍 시안의 유연수는 1품 학 흉배를 달고 있어
+# 젊은 한림학사의 품계와 맞지 않으므로 장면 참조로 쓰지 않는다.
+CAST = "design/ref/ref_cast_nobadge.png"
 REF = {
     "sassi": "design/ref/ref_sassi.png",
     "yeonsu": "design/ref/ref_yeonsu.png",
@@ -38,6 +41,11 @@ PORTRAIT = (
     "nothing else on it.\n\nCharacter: "
 )
 
+NOBADGE = (
+    " Any official in a dark green or dark robe wears a PLAIN robe with NO rank badge and no embroidered bird on the chest."
+    " Nobody wears a dragon robe."
+)
+
 SCENE = (
     "Wide illustration of one scene from a classical novel, for a mobile story game. Clear readable composition, "
     "figures large enough to recognize, calm areas of background around the figures.\n\nScene: "
@@ -52,8 +60,8 @@ def portrait(name, desc, ref=LINEUP, mode="style", ming=True):
     M.append((name, "1024x1024", ref, mode))
 
 
-def scene(name, desc, size="1536x1024", ref=LINEUP, mode="scene", ming=True):
-    P[name] = SCENE + desc + "\n\n" + STYLE + (MING if ming else "")
+def scene(name, desc, size="1536x1024", ref=CAST, mode="scene", ming=True):
+    P[name] = SCENE + desc + "\n\n" + STYLE + (MING if ming else "") + NOBADGE
     M.append((name, size, ref, mode))
 
 
@@ -108,7 +116,7 @@ portrait("pt_jangju", "Baby Jang-ju, a chubby healthy infant peacefully asleep, 
 portrait("pt_nun", "The Buddhist nun, a woman about 50 with a shaved head, serene and compassionate face, grey Buddhist robe "
          "with a brown kasaya over one shoulder, holding wooden prayer beads.")
 portrait("pt_imssi", "Lady Im, a kind young woman about 20 with a gentle modest face, simple hair bun with a small white "
-         "flower, plain pale peach-white robe.")
+         "flower, plain pale ivory-white robe with light jade-green trim. Her clothes must NOT be pink or red.")
 portrait("pt_eomsung", "Grand Secretary Eom, a powerful elderly Ming minister about 65 with a greedy, cunning face, thin long "
          "white beard, black official gauze hat with side wings, crimson official robe with an embroidered crane rank badge.")
 portrait("pt_consorts", "Ehuang and Nuying, the two legendary consorts of the ancient sage Emperor Shun, shown as two divine "
@@ -167,7 +175,7 @@ scene("sc_judgment", "A grand hall of a Ming-dynasty official residence: a stern
       "at a raised table; below him a woman in faded, worn pink robes kneels on the floor with her head bowed; servants "
       "stand at both sides; the lady in indigo-blue sits apart behind a painted folding screen.")
 scene("sc_reunion", "A warm courtyard of a Ming-dynasty mansion in spring with plum blossoms: the lady in rich indigo-blue "
-      "robes embraces a boy of about 7 in a pale sky-blue robe; a young woman in pale peach-white and an elderly nurse "
+      "robes embraces a boy of about 7 in a pale sky-blue robe; a young woman in a pale ivory-white robe with light jade-green trim (NOT pink) and an elderly nurse "
       "smile beside them.")
 
 # ---------- 지도·표지·질감 ----------
