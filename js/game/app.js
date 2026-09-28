@@ -48,6 +48,7 @@
       menu,
       h('div.credit', '김만중 『사씨남정기』 학습 게임 · 이야기 글은 원작 줄거리를 새로 풀어 쓴 것이에요'),
       h('div.credit.maker', '만든이 박준일(온양여자고등학교 국어 교사)'),
+      h('div.credit.maker', G.audio.CREDIT),
       musicToggle()));
   };
 
@@ -155,6 +156,7 @@
     const ci = STORY.findIndex((c) => c.id === chId);
     const ch = STORY[ci];
     G.audio.play(ch.music);
+    G.audio.preload([ch.music, ...ch.steps.map((s) => s.music), STORY[ci + 1] ? STORY[ci + 1].music : 'finale']);
     G.audio.chapter();
     const r = root(); r.innerHTML = '';
     const prog = h('i');
@@ -370,6 +372,7 @@
       seg('선생님용', 'teacher', [[false, '끄기'], [true, '모든 장 열기 + 정답 채우기']]),
       h('p.small.muted', '진행 상황은 이 브라우저에만 저장돼요(서버로 보내지 않아요).'),
       h('p.small.muted', '만든이 박준일(온양여자고등학교 국어 교사)'),
+      h('p.small.muted', G.audio.CREDIT_FULL),
     ], [{ label: '처음부터 새로', value: 'reset' }, { label: '타이틀로', value: 'title' }, { label: '닫기', value: true, cls: 'primary' }]);
     if (res === 'reset') app.newGame(true);
     if (res === 'title') app.title();

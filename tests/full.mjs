@@ -968,12 +968,15 @@ async function runFile() {
 function runAssets() {
   log('\n[assets] 자원 크기');
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(d + '/' + e.name) : [d + '/' + e.name]);
-  let total = 0;
+  let total = 0, music = 0;
   for (const f of walk(ROOT + 'assets').filter((f) => !f.includes('/raw/'))) {
-    const s = fs.statSync(f).size; total += s;
+    const s = fs.statSync(f).size;
+    // 배경음(assets/music)은 장에 들어갈 때 그 곡만 받으므로 따로 센다(곡 크기·합계는 audio.mjs가 본다)
+    if (f.includes('/music/')) { music += s; continue; }
+    total += s;
     if (s > 320 * 1024) note('assets', `큰 파일 ${f.replace(ROOT, '')} ${Math.round(s / 1024)}KB`);
   }
-  log(`  assets 합계 ${Math.round(total / 1024)}KB`);
+  log(`  assets 합계 ${Math.round(total / 1024)}KB (그 밖에 배경음 ${Math.round(music / 1024)}KB, 필요할 때 받음)`);
 }
 
 const run = { first: () => runPlay('first', 'phone'), review: () => runPlay('review', 'small'), flows: runFlows, save: runSave, ui: runUI, sizes: runSizes, file: runFile, assets: runAssets };

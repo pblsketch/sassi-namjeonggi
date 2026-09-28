@@ -1,11 +1,11 @@
 'use strict';
-// 소리: 모두 브라우저에서 합성한다(소리 파일 없음). 같은 만든이의 「관동별곡: 잃어버린 시구」 합성 엔진을 가져와 곡을 새로 지었다.
-//  - 가야금: 줄을 튕기는 소리를 흉내 내는 Karplus-Strong 합성 + 농현(떨기)·밀어 올리기·꺾어 내리기
-//  - 대금: 사인파 + 숨소리 + 늦게 들어오는 떨림, 음 사이를 미끄러지듯 잇기
-//  - 해금: 톱니파를 걸러 낸 비음 섞인 활 소리
-//  - 장구(덩·쿵·덕·기덕), 북, 징, 낮은 지속음, 은은한 배경음(꿈 장면)
-//  - 잔향: 합성한 공간 울림(ConvolverNode)
-// 곡은 장마다 분위기에 맞춰 고른다(STORY의 music, 단계의 music). 배경음·효과음은 설정에서 따로 끈다.
+// 소리
+//  - 배경음: 국립국악원 「국악기 디지털 음원」의 양금 악구 녹음(공공누리 제1유형)을 악곡별로 이어 붙인 것(assets/music/*.mp3).
+//    tools/build_music.py로 만든다. 곡은 장마다 분위기에 맞춰 고른다(STORY의 music, 단계의 music).
+//    필요할 때 내려받아 풀고(곡마다 1MB 안팎), 풀어 둔 소리는 최근 3곡만 들고 있는다(휴대폰 메모리).
+//  - 효과음: 브라우저에서 합성한다(같은 만든이의 「관동별곡: 잃어버린 시구」 합성 엔진)
+//    가야금(Karplus-Strong), 대금(사인파 + 숨소리), 장구(덩·쿵·덕·기덕)·북·징, 합성한 공간 울림(ConvolverNode)
+// 배경음·효과음은 설정에서 따로 끈다.
 (function () {
   const MUSIC_VOL = 0.5, SFX_VOL = 0.8;
   let ctx = null, comp, musicBus, sfxBus, revIn;
@@ -47,6 +47,8 @@
     document.addEventListener('visibilitychange', () => {
       if (!ctx) return;
       if (document.hidden) ctx.suspend(); else ctx.resume();
+      const el = cur && cur.el; // file://로 열어 <audio>로 트는 경우
+      if (el) { if (document.hidden) el.pause(); else el.play().catch(() => {}); }
     });
     A.ctx = ctx;
     return ctx;
@@ -139,55 +141,6 @@
     [o1, o2, o3, lfo, n, ch].forEach((s) => { s.start(t); s.stop(end); });
   }
 
-  // ───────── 해금
-  function haegeum(t, midi, dur, vel, orn, out, prev, wet = 0.3) {
-    const f = mtof(midi);
-    const o1 = ctx.createOscillator(); o1.type = 'sawtooth';
-    const o2 = ctx.createOscillator(); o2.type = 'sawtooth'; o2.detune.value = 7;
-    const setF = (fq, at) => { o1.frequency.setValueAtTime(fq, at); o2.frequency.setValueAtTime(fq, at); };
-    const rampF = (fq, at) => { o1.frequency.linearRampToValueAtTime(fq, at); o2.frequency.linearRampToValueAtTime(fq, at); };
-    if (prev) { setF(mtof(prev), t); rampF(f, t + 0.06); }
-    else if (orn.includes('<')) { setF(f * 0.9, t); rampF(f, t + 0.12); }
-    else setF(f, t);
-    if (orn.includes('>')) { const s = t + Math.max(0.08, dur - 0.18); setF(f, s); rampF(f * 0.95, t + dur); }
-    const lfo = ctx.createOscillator(); lfo.frequency.value = 6.2;
-    const lg = ctx.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * (orn.includes('~') ? 0.02 : 0.009), t + Math.min(dur, 0.35));
-    lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency);
-    const bp = filt('bandpass', 1100, 0.8), pk = filt('peaking', 2500, 1.4); pk.gain.value = 6;
-    const lp = filt('lowpass', 3600);
-    const env = ctx.createGain(), peak = 0.11 * vel;
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(peak, t + (prev ? 0.04 : 0.1));
-    env.gain.setValueAtTime(peak, t + Math.max(0.1, dur - 0.05));
-    env.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.14);
-    o1.connect(bp); o2.connect(bp); bp.connect(pk); pk.connect(lp); lp.connect(env); send(env, out, wet);
-    const end = t + dur + 0.25;
-    [o1, o2, lfo].forEach((s) => { s.start(t); s.stop(end); });
-  }
-
-  // ───────── 지속음·배경음
-  function drone(t, midi, dur, vel, out) {
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(midi);
-    const o2 = ctx.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = mtof(midi) * 1.5; o2.detune.value = -4;
-    const lp = filt('lowpass', 480, 0.7);
-    const g = ctx.createGain(), g2 = gainNode(0.3);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.04 * vel, t + 0.9);
-    g.gain.setValueAtTime(0.04 * vel, t + Math.max(1, dur - 0.9)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); send(g, out, 0.2);
-    o.start(t); o2.start(t); o.stop(t + dur + 0.1); o2.stop(t + dur + 0.1);
-  }
-  function pad(t, midi, dur, vel, out) {
-    const lp = filt('lowpass', 1800);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05 * vel, t + 1.2);
-    g.gain.setValueAtTime(0.05 * vel, t + Math.max(1.3, dur - 1)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 1.2);
-    for (const dt of [-7, 0, 7]) {
-      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = mtof(midi); o.detune.value = dt;
-      o.connect(lp); o.start(t); o.stop(t + dur + 1.3);
-    }
-    lp.connect(g); send(g, out, 0.5);
-  }
-
   // ───────── 타악: 장구·북·징
   function hit(t, kind, vel, out) {
     const kung = (tt, v) => {
@@ -231,217 +184,102 @@
     }
   }
 
-  // ───────── 악보 읽기
-  // 표기: 음(1~5, 0=쉼) + 옥타브(^ 위, v 아래) : 길이(단위 수) + 꾸밈(~ 떨기, < 밀어 올리기, > 꺾어 내리기)
-  // 예) "1:4 2:2 3:2 | 4:6~ 1^:2" — | 는 마디 구분(보기 편하게)
-  // 선법: 평조(밝고 너그러움) = 솔라도레미 꼴, 계면조(슬프고 애절함) = 라도레미솔 꼴
-  const MODES = { pyeong: [0, 2, 5, 7, 9], gyemyeon: [0, 3, 5, 7, 10] };
-  function parse(str, mode, tonic) {
-    const out = [];
-    let pos = 0;
-    for (const tok of str.split(/\s+/)) {
-      if (!tok || tok === '|') continue;
-      const m = tok.match(/^([0-5])([\^v]*):(\d+(?:\.\d+)?)([~<>]*)$/);
-      if (!m) { console.warn('악보 오류', tok); continue; }
-      const deg = +m[1], dur = +m[3];
-      if (deg > 0) {
-        let oct = 0; for (const c of m[2]) oct += c === '^' ? 1 : -1;
-        out.push({ pos, dur, midi: tonic + MODES[mode][deg - 1] + 12 * oct, orn: m[4] || '' });
-      }
-      pos += dur;
-    }
-    return { notes: out, len: pos };
-  }
-  const snap = (midi, mode, tonic) => { // 선법 밖의 음을 가장 가까운 선법 음으로
-    const pcs = MODES[mode].map((x) => (x + tonic) % 12);
-    for (let d = 0; d < 6; d++) for (const s of [0, -1, 1]) { const m = midi + d * s; if (pcs.includes(((m % 12) + 12) % 12)) return m; }
-    return midi;
-  };
-
-  // 장단(마디 안의 위치, 소리, 세기)
-  const JANGDAN = {
-    jungmori8: [[0, 'deong', 0.55], [4, 'kung', 0.4], [6, 'deok', 0.25]],
-    gutgeori12: [[0, 'deong', 0.9], [3, 'gideok', 0.6], [5, 'deok', 0.4], [6, 'kung', 0.8], [8, 'deok', 0.5], [9, 'kung', 0.7], [11, 'deok', 0.4]],
-    jungjung12: [[0, 'deong', 0.6], [3, 'deok', 0.3], [6, 'kung', 0.55], [9, 'deok', 0.35], [10, 'deok', 0.22]],
-    semachi9: [[0, 'deong', 0.9], [3, 'deok', 0.5], [5, 'deok', 0.35], [6, 'kung', 0.8], [7, 'deok', 0.4]],
-    jajin12: [[0, 'deong', 1], [0, 'buk', 0.9], [2, 'deok', 0.55], [3, 'kung', 0.8], [5, 'deok', 0.55], [6, 'kung', 0.9], [6, 'buk', 0.7], [8, 'deok', 0.55], [9, 'kung', 0.8], [11, 'gideok', 0.65]],
-    sneak12: [[0, 'kung', 0.5], [3, 'deok', 0.22], [6, 'kung', 0.35], [9, 'deok', 0.22], [11, 'deok', 0.14]],
-    night12: [[0, 'kung', 0.45], [9, 'deok', 0.2]],
-  };
-
-  // ───────── 곡 (사씨남정기를 위해 새로 지음). gain = 곡끼리 음량 맞춤(tests/audio.mjs로 잼), drum = 장단 세기 배율(글을 읽는 장면은 작게)
+  // ───────── 배경음(녹음)
+  // piece = 악곡 이름(국립국악원 양금 악구), gain = 곡끼리 음량 맞춤(tests/audio.mjs로 잼), wet = 공간 울림(꿈 장면만)
+  const MUSIC_DIR = 'assets/music/';
+  const LOOP_GAP = 1.2; // 한 바퀴 끝나고 다시 시작하기 전의 쉼(초)
   const TRACKS = {
-    // 세책방(타이틀·세책방 주인): 굿거리에 가야금이 정겹게, 대금이 길게 받친다
-    shop: {
-      mode: 'pyeong', tonic: 67, gain: 1.38, unit: 60 / 168, bar: 12, jangdan: 'gutgeori12', drum: 0.5, drone: 43,
-      lead: { inst: 'gayageum', vel: 0.85, mel: '1:3 2:3 3:3 2:3 | 3:6 5:3 4:3 | 3:3 2:3 1:3 2:3 | 1:12~ | 3:3 4:3 5:3 1^:3 | 2^:6~ 1^:3 5:3 | 4:3 5:3 4:3 3:3 | 2:12~ | 5:3 1^:3 2^:3 3^:3 | 2^:6 1^:3 5:3 | 1^:3 5:3 4:3 3:3 | 4:12~ | 3:3 4:3 5:3 4:3 | 3:6 2:3 1:3 | 2:3 3:3 2:3 5v:3 | 1:12~' },
-      second: { inst: 'daegeum', style: 'long', min: 6, oct: 0, vel: 0.42 },
-      acc: { inst: 'gayageum', style: 'bass', beat: 6, oct: -12, vel: 0.45 },
-    },
-    // 서장(유씨 집안·관음찬·혼인): 평조 대금이 느리고 단정하게
-    peace: {
-      mode: 'pyeong', tonic: 74, gain: 0.65, unit: 60 / 120, bar: 8, jangdan: 'jungmori8', drum: 0.6, jing: [0], drone: 50,
-      lead: { inst: 'daegeum', vel: 0.9, mel: '3:4 2:2 1:2 | 2:6~ 3:2 | 5:4 4:2 3:2 | 3:8~ | 5:3 1^:1 2^:2 1^:2 | 5:6~ 4:2 | 3:2 4:2 3:2 2:2 | 1:8~ | 1^:4 5:2 1^:2 | 2^:6~ 1^:2 | 5:3 4:1 3:2 5:2 | 4:8~ | 3:4 4:2 5:2 | 4:4 3:2 2:2 | 3:3 2:1 1:2 2:2 | 1:8~' },
-      acc: { inst: 'gayageum', style: 'beats', beat: 4, oct: -12, vel: 0.45 },
-    },
-    // 1장(첩을 들이다): 겉은 평온하지만 계면조로 기운다. 해금이 낮게 그림자를 드리운다
-    unease: {
-      mode: 'gyemyeon', tonic: 69, gain: 1.91, unit: 60 / 140, bar: 12, jangdan: 'jungjung12', drum: 0.6, drone: 45,
-      lead: { inst: 'gayageum', vel: 0.85, mel: '1:3 1:3 2:3 3:3 | 4:6~ 3:3 2:3 | 1:3 2:3 3:3 5v:3 | 1:12~ | 3:3 4:3 5:3 4:3 | 3:6> 2:3 1:3 | 2:3 3:3 4:3 3:3 | 2:12 | 4:3 5:3 1^:3 5:3 | 4:6~ 5:3 4:3 | 3:3 2:3 1:3 2:3 | 3:12~ | 5v:3 1:3 2:3 3:3 | 4:6~ 3:3> 2:3 | 1:3 2:3 5v:3 5v:3 | 1:12~' },
-      second: { inst: 'haegeum', style: 'long', min: 6, oct: -12, vel: 0.5 },
-      acc: { inst: 'gayageum', style: 'bass', beat: 6, oct: -12, vel: 0.4 },
-    },
-    // 2장(옥가락지)·모함 장면: 해금이 낮게 기어가고 가야금이 같은 음형을 되풀이한다
-    scheme: {
-      mode: 'gyemyeon', tonic: 64, gain: 1.5, unit: 60 / 150, bar: 12, jangdan: 'sneak12', drum: 0.8, drone: 40,
-      lead: { inst: 'haegeum', vel: 0.9, mel: '1:6 2:3 1:3 | 5v:6~ 1:6 | 2:3 3:3 2:3 1:3 | 5v:12~ | 1:3 2:3 3:6 | 4:6~ 3:3 2:3 | 3:3 2:3 1:3 2:3 | 1:12~ | 3:6 4:3 3:3 | 5:6~ 4:6 | 3:3 4:3 3:3 2:3> | 1:12 | 2:3 1:3 5v:3 1:3 | 2:6 3:3 2:3 | 1:3 5v:3 4v:3 5v:3 | 1:12~' },
-      acc: { inst: 'gayageum', style: 'ostinato', vel: 0.42, mel: '1v:3 5vv:3 1v:3 2v:3' },
-    },
-    // 3장(쫓겨난 부인): 계면조 대금 독주. 떠는 소리와 꺾는 소리로 서러움을
-    sorrow: {
-      mode: 'gyemyeon', tonic: 69, gain: 0.65, unit: 60 / 84, bar: 12, jangdan: 'night12', drum: 0.8, drone: 45,
-      lead: { inst: 'daegeum', vel: 0.9, mel: '5v:6 1:3 2:3 | 3:6~ 2:3> 1:3 | 1:3 2:3 3:3 4:3 | 4:9~ 3:3> | 2:6 3:3 2:3 | 1:6~ 5v:6 | 1:3 2:3 3:3> 2:3 | 1:12~ | 4:6 5:3 4:3 | 1^:9~ 5:3 | 4:3 5:3 4:3 3:3> | 2:12~ | 3:6 2:3 1:3 | 2:6~ 3:3> 2:3 | 1:3 5v:3 1:3 2:3 | 1:12~' },
-      acc: { inst: 'gayageum', style: 'beats', beat: 6, oct: -12, vel: 0.4 },
-    },
-    // 4장(남쪽으로): 세마치에 물 흐르듯 가야금, 대금이 먼 길을 길게 분다
-    wander: {
-      mode: 'gyemyeon', tonic: 67, gain: 1.45, unit: 60 / 170, bar: 9, jangdan: 'semachi9', drum: 0.45, drone: 43,
-      lead: { inst: 'gayageum', vel: 0.85, mel: '1:3 2:3 3:3 | 4:6~ 3:3 | 2:3 3:3 2:3 | 1:9~ | 3:3 4:3 5:3 | 1^:6~ 5:3 | 4:3 3:3 4:3 | 3:6> 2:3 | 1:3 2:3 3:3 | 5:6~ 4:3 | 3:3 2:3 3:3 | 2:9 | 1:3 5v:3 1:3 | 2:6~ 3:3 | 2:3 1:3 5v:3 | 1:9~' },
-      second: { inst: 'daegeum', style: 'long', min: 6, oct: 0, vel: 0.42 },
-      acc: { inst: 'gayageum', style: 'arp', beat: 3, oct: -12, vel: 0.3 },
-    },
-    // 황릉묘의 꿈: 장단 없이 높은 가야금과 은은한 배경음
-    dream: {
-      mode: 'pyeong', tonic: 72, gain: 1.4, unit: 60 / 90, bar: 8, jangdan: null, drone: null,
-      lead: { inst: 'gayageum', vel: 0.72, mel: '1^:4 5:4 | 3:6~ 2:2 | 3:2 5:2 1^:4 | 2^:8~ | 3^:4 2^:2 1^:2 | 5:6~ 4:2 | 3:2 4:2 5:4 | 1:8~' },
-      acc: { inst: 'pad', style: 'chord', oct: -12, vel: 0.85 },
-    },
-    // 5장(돌아온 진실): 평조 굿거리로 다시 밝아진다
-    hope: {
-      mode: 'pyeong', tonic: 69, gain: 0.64, unit: 60 / 190, bar: 12, jangdan: 'gutgeori12', drum: 0.55, drone: 45,
-      lead: { inst: 'daegeum', vel: 0.9, mel: '1:3 2:3 3:3 5:3 | 4:6~ 3:3 2:3 | 3:3 5:3 1^:3 5:3 | 4:12~ | 5:3 1^:3 2^:3 1^:3 | 5:6~ 4:3 5:3 | 3:3 2:3 3:3 4:3 | 2:12~ | 3:3 4:3 5:3 1^:3 | 2^:6~ 3^:3 2^:3 | 1^:3 5:3 4:3 5:3 | 1^:12~ | 5:3 4:3 3:3 4:3 | 5:6 3:3 2:3 | 1:3 2:3 3:3 2:3 | 1:12~' },
-      acc: { inst: 'gayageum', style: 'bass', beat: 6, oct: -12, vel: 0.45 },
-    },
-    // 종장(교씨의 죄를 따짐): 자진모리 계면조, 해금이 몰아치고 북과 징이 울린다
-    judgment: {
-      mode: 'gyemyeon', tonic: 69, gain: 0.88, unit: 60 / 260, bar: 12, jangdan: 'jajin12', drum: 0.75, jing: [0, 8], drone: 45,
-      lead: { inst: 'haegeum', vel: 1, mel: '1:3 2:3 3:3 4:3 | 5:6 4:3 3:3> | 2:3 3:3 2:3 1:3 | 5v:12~ | 1:3 3:3 4:3 5:3 | 1^:6~ 5:3 4:3 | 5:3 4:3 3:3 2:3> | 1:12~ | 1^:3 5:3 1^:3 2^:3 | 3^:6~ 2^:3 1^:3 | 5:3 1^:3 5:3 4:3 | 3:12> | 4:3 5:3 4:3 3:3 | 2:6 3:3 2:3 | 1:3 2:3 5v:3 5v:3 | 1:12~' },
-      acc: { inst: 'gayageum', style: 'ostinato', vel: 0.5, mel: '1v:3 1v:2 2v:1 3v:3 2v:3' },
-    },
-    // 종장(재회·하늘의 도리): 평조 중모리, 따뜻하게 정리한다
-    resolve: {
-      mode: 'pyeong', tonic: 67, gain: 0.66, unit: 60 / 128, bar: 8, jangdan: 'jungmori8', drum: 0.55, drone: 43,
-      lead: { inst: 'daegeum', vel: 0.9, mel: '1:4 3:2 5:2 | 4:6~ 3:2 | 2:2 3:2 5:2 3:2 | 2:8~ | 3:2 5:2 1^:4 | 2^:6~ 1^:2 | 5:2 1^:2 5:2 4:2 | 5:8~ | 1^:4 2^:2 3^:2 | 2^:6~ 1^:2 | 5:3 4:1 3:2 4:2 | 5:8 | 3:4 2:2 3:2 | 5:4 4:2 3:2 | 2:3 3:1 2:2 5v:2 | 1:8~' },
-      acc: { inst: 'gayageum', style: 'beats', beat: 4, oct: -12, vel: 0.45 },
-    },
-    // 필사기(결과 화면): 밝은 굿거리, 가야금과 대금이 함께
-    finale: {
-      mode: 'pyeong', tonic: 72, gain: 1.26, unit: 60 / 190, bar: 12, jangdan: 'gutgeori12', drum: 0.7, jing: [0], drone: 48,
-      lead: { inst: 'gayageum', vel: 0.9, mel: '5v:3 1:3 2:3 3:3 | 5:6~ 3:3 2:3 | 1:3 2:3 3:3 5:3 | 3:12~ | 5:3 1^:3 2^:3 1^:3 | 2^:6~ 3^:3 2^:3 | 1^:3 5:3 3:3 5:3 | 1^:12~ | 3^:3 2^:3 1^:3 5:3 | 1^:6~ 5:3 3:3 | 2:3 3:3 5:3 3:3 | 2:12~ | 3:3 5:3 1^:3 5:3 | 3:6 2:3 1:3 | 2:3 3:3 2:3 5v:3 | 1:12~' },
-      second: { inst: 'daegeum', style: 'long', min: 6, oct: 0, vel: 0.45 },
-      acc: { inst: 'gayageum', style: 'bass', beat: 6, oct: -12, vel: 0.45 },
-    },
+    shop: { piece: '우조가락도드리', gain: 0.93 },     // 타이틀·세책방: 밝은 우조, 정겹게
+    peace: { piece: '세령산', gain: 1.01 },            // 서장(유씨 집안·관음찬·혼인): 단정하고 우아하게
+    unease: { piece: '계면가락도드리', gain: 0.99 },   // 1장(첩을 들이다): 계면조로 기운다
+    scheme: { piece: '언편', gain: 1.01 },             // 2장(옥가락지)·모함 장면: 계면 편장단이 거칠게 몰아간다
+    sorrow: { piece: '상령산', gain: 1.2 },            // 3장(쫓겨난 부인): 아주 느리고 무겁게
+    wander: { piece: '윗도드리', gain: 1.01 },         // 4장(남쪽으로): 흘러가는 먼 길
+    dream: { piece: '보허사', gain: 1.1, wet: 0.35 },  // 황릉묘의 꿈: 당악 계통 '허공을 걷는 노래'
+    hope: { piece: '타령', gain: 1.02 },               // 5장(돌아온 진실): 경쾌하게 다시 밝아진다
+    judgment: { piece: '편락', gain: 1 },              // 종장(교씨의 죄를 따짐): 빠르게 몰아친다
+    resolve: { piece: '하현도드리', gain: 1.03 },      // 종장(재회·하늘의 도리): 따뜻하게 정리한다
+    finale: { piece: '군악', gain: 0.86 },             // 필사기(결과 화면): 씩씩하고 화려하게
   };
 
-  function buildTrack(def) {
-    const u = def.unit, ev = [];
-    const L = parse(def.lead.mel, def.mode, def.tonic);
-    const total = L.len;
-    let prevEnd = -1, prevMidi = null;
-    for (const n of L.notes) {
-      const legato = def.lead.inst !== 'gayageum' && Math.abs(n.pos - prevEnd) < 0.01;
-      ev.push({ t: n.pos * u, inst: def.lead.inst, midi: n.midi, dur: n.dur * u * (def.lead.inst === 'gayageum' ? 1 : 0.97), vel: def.lead.vel, orn: n.orn, prev: legato ? prevMidi : null });
-      prevEnd = n.pos + n.dur; prevMidi = n.midi;
+  // 출처 표시(공공누리 제1유형): 타이틀에는 짧게, 설정·README에는 온전히
+  A.CREDIT = '배경음 국립국악원 「국악기 디지털 음원」 양금 연주(공공누리 제1유형)';
+  A.CREDIT_FULL = '배경음은 국립국악원이 공공누리 제1유형으로 개방한 「국악기 디지털 음원」의 양금 악구(' +
+    [...new Set(Object.values(TRACKS).map((t) => t.piece))].join('·') + ')를 이어 붙여 썼어요. 원본은 국립국악원 누리집(gugak.go.kr/digitaleum)에서 무료로 받을 수 있어요.';
+
+  const decode = (c, ab) => new Promise((ok, no) => c.decodeAudioData(ab, ok, no)); // 옛 사파리는 콜백 꼴만 된다
+  const files = {};          // 곡 이름 → 내려받은 파일(Promise<ArrayBuffer>)
+  const decoded = new Map(); // 곡 이름 → 풀어 둔 소리(최근 3곡)
+  function fetchTrack(name) {
+    if (!files[name]) {
+      files[name] = fetch(MUSIC_DIR + name + '.mp3').then((r) => { if (!r.ok) throw new Error(name + ' ' + r.status); return r.arrayBuffer(); });
+      files[name].catch(() => { delete files[name]; }); // 실패하면 다음에 다시 받는다
     }
-    // 둘째 소리(헤테로포니: 같은 선율을 길게 따라 부른다)
-    const S2 = def.second;
-    if (S2) for (const n of L.notes) if (n.dur >= S2.min) ev.push({ t: n.pos * u, inst: S2.inst, midi: n.midi + S2.oct, dur: n.dur * u * 0.95, vel: S2.vel, orn: n.orn.replace('<', '') });
-    // 반주
-    const C = def.acc;
-    if (C) {
-      if (C.style === 'beats' || C.style === 'bass') {
-        for (const n of L.notes) {
-          if (n.pos % C.beat !== 0) continue;
-          const m = C.style === 'bass' ? snap(n.midi + C.oct - (n.midi - def.tonic >= 12 ? 12 : 0), def.mode, def.tonic) : n.midi + C.oct;
-          ev.push({ t: n.pos * u, inst: C.inst, midi: m, dur: Math.min(n.dur, C.beat * 2) * u, vel: C.vel, orn: n.dur >= C.beat * 2 ? '~' : '' });
-        }
-      } else if (C.style === 'arp') {
-        for (let b = 0; b * def.bar < total; b++) {
-          const first = L.notes.find((n) => n.pos >= b * def.bar) || L.notes[0];
-          const root = first.midi + C.oct - 12 * Math.max(0, Math.floor((first.midi - def.tonic) / 12));
-          const tones = [root, snap(root + 7, def.mode, def.tonic), root + 12, snap(root + 7, def.mode, def.tonic)];
-          for (let k = 0; k * C.beat < def.bar; k++) ev.push({ t: (b * def.bar + k * C.beat) * u, inst: C.inst, midi: tones[k % 4], dur: C.beat * u * 1.5, vel: C.vel * (k === 0 ? 1.15 : 0.85), orn: '' });
-        }
-      } else if (C.style === 'ostinato') {
-        const O = parse(C.mel, def.mode, def.tonic);
-        for (let b = 0; b * def.bar < total; b++) for (const n of O.notes) ev.push({ t: (b * def.bar + n.pos) * u, inst: C.inst, midi: n.midi, dur: n.dur * u, vel: C.vel, orn: '' });
-      } else if (C.style === 'chord') {
-        for (let b = 0; b * def.bar < total; b++) {
-          const first = L.notes.find((n) => n.pos >= b * def.bar) || L.notes[0];
-          const root = def.tonic + C.oct + ((first.midi - def.tonic) % 12 + 12) % 12;
-          for (const m of [root - 12, snap(root - 5, def.mode, def.tonic), root]) ev.push({ t: b * def.bar * u, inst: 'pad', midi: m, dur: def.bar * u, vel: C.vel, orn: '' });
-        }
-      }
-    }
-    // 장단·징·지속음
-    const bars = Math.round(total / def.bar), dv = def.drum == null ? 1 : def.drum;
-    for (let b = 0; b < bars; b++) {
-      if (def.jangdan) for (const [p, k, v] of JANGDAN[def.jangdan]) ev.push({ t: (b * def.bar + p) * u, drum: k, vel: v * dv });
-      if (def.jing && def.jing.includes(b)) ev.push({ t: b * def.bar * u + 0.01, drum: 'jing', vel: 0.8 });
-      if (def.drone && b % 2 === 0) ev.push({ t: b * def.bar * u, inst: 'drone', midi: def.drone, dur: def.bar * 2 * u, vel: 1 });
-    }
-    ev.sort((a, b) => a.t - b.t);
-    return { notes: ev, length: total * u };
+    return files[name];
+  }
+  async function bufferOf(name) {
+    if (decoded.has(name)) { const b = decoded.get(name); decoded.delete(name); decoded.set(name, b); return b; }
+    const buf = await decode(ctx, (await fetchTrack(name)).slice(0)); // 풀면 원본이 비워지므로 복사본을 넘긴다
+    decoded.set(name, buf);
+    while (decoded.size > 3) decoded.delete(decoded.keys().next().value);
+    return buf;
   }
 
-  function playEvent(n, t, out) {
-    if (n.drum) return hit(t, n.drum, n.vel, out);
-    if (n.inst === 'gayageum') gayageum(t, n.midi, n.dur, n.vel, n.orn, out);
-    else if (n.inst === 'daegeum') daegeum(t, n.midi, n.dur, n.vel, n.orn, out, n.prev);
-    else if (n.inst === 'haegeum') haegeum(t, n.midi, n.dur, n.vel, n.orn, out, n.prev);
-    else if (n.inst === 'drone') drone(t, n.midi, n.dur, n.vel, out);
-    else if (n.inst === 'pad') pad(t, n.midi, n.dur, n.vel, out);
+  // file://로 열면 브라우저가 fetch로 파일 읽기를 막는다 → 그때는 <audio>로 곧장 튼다(음량은 요소 볼륨으로)
+  const viaElement = location.protocol === 'file:';
+  function fadeEl(el, to, sec, done) {
+    clearInterval(el._fade);
+    const from = el.volume, steps = Math.max(1, Math.round(sec * 20));
+    let k = 0;
+    el._fade = setInterval(() => {
+      el.volume = Math.max(0, Math.min(1, from + (to - from) * (++k / steps)));
+      if (k >= steps) { clearInterval(el._fade); if (done) done(); }
+    }, 50);
   }
 
-  // ───────── 재생(앞질러 예약하기: 0.3초 앞의 음까지 미리 예약)
-  const built = {};
-  const trackOf = (name) => built[name] || (built[name] = buildTrack(TRACKS[name]));
-  let sched = null, cur = null;
+  let cur = null;
   function startTrack(name) {
     stopTrack(true);
-    if (!TRACKS[name]) return;
-    const tr = trackOf(name);
+    const def = TRACKS[name];
+    if (viaElement) {
+      const el = new Audio(MUSIC_DIR + name + '.mp3'); el.loop = true; el.volume = 0;
+      const me = (cur = { name, el, src: null });
+      el.play().then(() => {
+        if (cur !== me) { el.pause(); return; }
+        me.src = el;
+        fadeEl(el, Math.min(1, MUSIC_VOL * (def.gain || 1)), 1.2);
+      }).catch(() => { if (cur === me) cur = null; });
+      return;
+    }
     const bus = ctx.createGain(); bus.gain.value = 0.0001; bus.connect(musicBus);
-    bus.gain.exponentialRampToValueAtTime(TRACKS[name].gain || 1, ctx.currentTime + 1.2);
-    cur = { name, bus, notes: tr.notes, length: tr.length, idx: 0, loopStart: ctx.currentTime + 0.15 };
-    const me = cur;
-    const tick = () => {
+    if (def.wet) { const w = gainNode(def.wet); bus.connect(w); w.connect(revIn); }
+    const me = (cur = { name, bus, src: null });
+    bufferOf(name).then((buf) => {
       if (cur !== me) return;
-      const ahead = ctx.currentTime + 0.3;
-      for (let guard = 0; guard < 400; guard++) {
-        const n = me.notes[me.idx];
-        const t = me.loopStart + n.t;
-        if (t > ahead) break;
-        if (t >= ctx.currentTime - 0.05) { try { playEvent(n, t, me.bus); } catch (e) { /* 무시 */ } }
-        me.idx++;
-        if (me.idx >= me.notes.length) { me.idx = 0; me.loopStart += me.length + 0.6; } // 한 바퀴 뒤 잠깐 숨
-      }
-    };
-    tick();
-    sched = setInterval(tick, 80);
+      const t0 = ctx.currentTime + 0.05;
+      bus.gain.setValueAtTime(0.0001, t0);
+      bus.gain.exponentialRampToValueAtTime(def.gain || 1, t0 + 1.2);
+      const loop = (t) => {
+        const s = ctx.createBufferSource(); s.buffer = buf; s.connect(bus); s.start(t);
+        me.src = s;
+        s.onended = () => { if (cur === me) loop(Math.max(ctx.currentTime + 0.02, t + buf.duration + LOOP_GAP)); };
+      };
+      loop(t0);
+    }).catch(() => { if (cur === me) cur = null; }); // 못 받으면(오프라인 등) 조용히 넘어간다
   }
   function stopTrack(fast) {
-    if (sched) { clearInterval(sched); sched = null; }
-    if (cur && ctx) {
-      const b = cur.bus, now = ctx.currentTime;
-      b.gain.cancelScheduledValues(now);
-      b.gain.setValueAtTime(Math.max(0.0001, b.gain.value), now);
-      b.gain.exponentialRampToValueAtTime(0.0001, now + (fast ? 0.8 : 1.5));
-      setTimeout(() => b.disconnect(), 3000);
+    if (cur && cur.el) { const el = cur.el; fadeEl(el, 0, fast ? 0.8 : 1.5, () => el.pause()); }
+    else if (cur && ctx) {
+      const { bus, src } = cur, now = ctx.currentTime, len = fast ? 0.8 : 1.5;
+      bus.gain.cancelScheduledValues(now);
+      bus.gain.setValueAtTime(Math.max(0.0001, bus.gain.value), now);
+      bus.gain.exponentialRampToValueAtTime(0.0001, now + len);
+      if (src) { src.onended = null; try { src.stop(now + len + 0.1); } catch (e) { /* 이미 멈춤 */ } }
+      setTimeout(() => bus.disconnect(), (len + 0.5) * 1000);
     }
     cur = null;
   }
-  // 지금 들려야 할 곡을 맞춘다(배경음을 끄면 예약도 멈춘다)
+  // 지금 들려야 할 곡을 맞춘다(배경음을 끄면 재생도 멈춘다)
   function sync() {
     if (!ctx) return;
     const want = S().music && A.track && TRACKS[A.track] ? A.track : null;
@@ -458,6 +296,13 @@
   A.play = function (name) {
     A.track = name || null;
     sync();
+  };
+  // 곧 쓸 곡 파일을 미리 받아 둔다(장에 들어갈 때 그 장의 곡들과 다음 장의 곡).
+  // 교실 와이파이가 느려도 지금 곡이 먼저 나오게, 지금 곡을 받은 뒤 하나씩 차례로 받는다
+  A.preload = function (names) {
+    if (viaElement || !S().music) return;
+    let chain = A.track && TRACKS[A.track] ? fetchTrack(A.track).catch(() => {}) : Promise.resolve();
+    for (const n of new Set(names)) if (n && TRACKS[n]) chain = chain.then(() => fetchTrack(n)).catch(() => {});
   };
   // 배경음 켜기/끄기(설정)
   A.music = function (want) {
@@ -503,25 +348,20 @@
   };
   for (const k of Object.keys(SFX)) A[k] = () => { if (!sfxOn()) return; try { SFX[k](); } catch (e) { /* 무시 */ } };
 
-  // ───────── 미리 듣기·점검용: 곡을 오프라인으로 렌더해 AudioBuffer로 돌려준다
+  // ───────── 점검용: 곡을 오프라인으로 렌더해 AudioBuffer로 돌려준다(게임과 같은 소리 길: 곡 음량·배경음 크기·압축기)
   A.render = async function (name, seconds = 20, rate = 44100) {
     const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     const off = new OAC(2, Math.ceil(seconds * rate), rate);
-    const saved = [ctx, comp, musicBus, sfxBus, revIn, ksCache, noiseBuf];
-    try {
-      ctx = off; ksCache = {}; noiseBuf = null;
-      ({ comp, musicBus, sfxBus, revIn } = buildGraph(off));
-      const tr = buildTrack(TRACKS[name]);
-      const tb = off.createGain(); tb.gain.value = TRACKS[name].gain || 1; tb.connect(musicBus);
-      for (let loop = 0; loop * tr.length < seconds; loop++) {
-        for (const n of tr.notes) { const t = loop * (tr.length + 0.6) + n.t + 0.05; if (t < seconds) playEvent(n, t, tb); }
-      }
-    } finally {
-      [ctx, comp, musicBus, sfxBus, revIn, ksCache, noiseBuf] = saved;
+    const g = buildGraph(off), def = TRACKS[name];
+    const buf = await decode(off, (await fetchTrack(name)).slice(0));
+    const tb = off.createGain(); tb.gain.value = def.gain || 1; tb.connect(g.musicBus);
+    if (def.wet) { const w = off.createGain(); w.gain.value = def.wet; tb.connect(w); w.connect(g.revIn); }
+    for (let t = 0.05; t < seconds; t += buf.duration + LOOP_GAP) {
+      const s = off.createBufferSource(); s.buffer = buf; s.connect(tb); s.start(t);
     }
     return off.startRendering();
   };
-  A.now = () => (cur ? cur.name : null); // 지금 실제로 흐르는 곡(점검용)
+  A.now = () => (cur ? cur.name : null);           // 지금 흐르는(또는 받는 중인) 곡(점검용)
+  A.ready = () => !!(cur && cur.src);              // 소리가 실제로 나기 시작했는지(점검용)
   A.TRACKS = TRACKS;
-  A._parse = parse;
 })();

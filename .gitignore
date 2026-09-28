@@ -2,6 +2,8 @@
 assets/raw/
 # 글꼴 원본(tools/build_fonts.py가 내려받는다)
 tools/fonts_src/
+# 배경음 원본(국립국악원 양금 악구 WAV, 용량이 크다) — 게임은 assets/music의 mp3만 쓴다
+tools/music_src/
 # 테스트
 tests/node_modules/
 tests/shots/
