@@ -16,5 +16,6 @@
   };
   // 첫 터치에서 소리를 켤 수 있게(브라우저 정책)
   document.addEventListener('pointerdown', () => G.audio.unlock(), { once: true });
+  document.addEventListener('keydown', () => G.audio.unlock(), { once: true });
   go();
 })();

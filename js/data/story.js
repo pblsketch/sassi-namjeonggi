@@ -12,6 +12,7 @@
 //   **낱말**     : 강조
 // ■ 단계 종류(type)
 //   page    : 필사본 쪽. paras 한 줄씩 넘기며 읽고, [ ] 호칭에 인물을 잇는다
+// music: 장(또는 단계)에서 흐르는 배경음 이름(js/core/audio.js의 TRACKS). 단계에 적으면 그 단계에서만 바뀐다
 //   case    : 사건 복원. 그림 속 조사 지점(spots)·쪽지(clues)에서 낱말을 모아 빈칸 문장(lines)을 채운다
 //             bank=처음부터 있는 낱말, hard=다시 읽기(복습)에서만 더하는 헷갈리는 낱말(정답이 될 수 없는 것만)
 //   card    : 알림 카드. kind = fiction(게임 설정), variant(이본 노트), note(해설), orig(원문), interp(해석)
@@ -26,7 +27,7 @@
 window.STORY = [
   // ───────────────────────────── 서장 ─────────────────────────────
   {
-    id: 'ch0', no: '서장', title: '관음찬',
+    id: 'ch0', no: '서장', title: '관음찬', music: 'peace',
     hoemok: [
       { han: '淑女贊白衣像 良媒結赤繩緣', read: '숙녀찬백의상 양매결적승연',
         gloss: '어진 처녀가 흰 옷 입은 관음상에 찬을 짓고, 좋은 중매가 붉은 끈의 인연을 맺다',
@@ -65,7 +66,7 @@ window.STORY = [
 
   // ───────────────────────────── 1장 ─────────────────────────────
   {
-    id: 'ch1', no: '1장', title: '첩을 들이다',
+    id: 'ch1', no: '1장', title: '첩을 들이다', music: 'unease',
     hoemok: [
       { han: '詩詠關雎樛木 琴奏霓裳羽衣', read: '시영관저규목 금주예상우의',
         gloss: '시로는 「관저」와 「규목」을 읊고, 거문고로는 「예상우의곡」을 타다',
@@ -124,7 +125,7 @@ window.STORY = [
 
   // ───────────────────────────── 2장 ─────────────────────────────
   {
-    id: 'ch2', no: '2장', title: '옥가락지',
+    id: 'ch2', no: '2장', title: '옥가락지', music: 'scheme',
     hoemok: [
       { han: '孝女言告言歸 淫婦爲鬼爲蜮', read: '효녀언고언귀 음부위귀위역',
         gloss: '효성스러운 딸은 말씀드리고 친정에 가고, 음란한 여인은 귀신과 물여우 같은 짓을 하다',
@@ -207,7 +208,7 @@ window.STORY = [
 
   // ───────────────────────────── 3장 ─────────────────────────────
   {
-    id: 'ch3', no: '3장', title: '쫓겨난 부인',
+    id: 'ch3', no: '3장', title: '쫓겨난 부인', music: 'sorrow',
     hoemok: [
       { han: '君子信讒言 兇人戕愛子', read: '군자신참언 흉인장애자',
         gloss: '군자는 헐뜯는 말을 믿고, 흉악한 사람은 사랑하는 아들을 해치다', note: '' },
@@ -274,7 +275,7 @@ window.STORY = [
 
   // ───────────────────────────── 4장 ─────────────────────────────
   {
-    id: 'ch4', no: '4장', title: '남쪽으로',
+    id: 'ch4', no: '4장', title: '남쪽으로', music: 'wander',
     hoemok: [
       { han: '懷沙亭呼天 黃陵墓敷袵', read: '회사정호천 황릉묘부임',
         gloss: '회사정에서 하늘에 부르짖고, 황릉묘에서 무릎 꿇고 옷자락을 펴 하소연하다',
@@ -294,7 +295,7 @@ window.STORY = [
         ],
       },
       {
-        id: 'p4b', type: 'page', title: '황릉묘의 꿈', scene: 'sc_dream_shrine',
+        id: 'p4b', type: 'page', music: 'dream', title: '황릉묘의 꿈', scene: 'sc_dream_shrine',
         paras: [
           '[사씨|sassi]는 {두 부인|dubuin}이 있는 장사를 바라고 갔으나, {두 부인|dubuin}은 이미 그곳을 떠난 뒤였다. 노잣돈도 다 떨어졌다.',
           '굴원의 넋이 서린 회사정 물가에 이르자, {사씨|sassi}는 하늘을 우러러 부르짖고 물에 몸을 던지려 하였다.',
@@ -305,7 +306,7 @@ window.STORY = [
         ],
       },
       {
-        id: 's4', type: 'sort', title: '꿈속일까, 깨어난 뒤일까',
+        id: 's4', type: 'sort', music: 'dream', title: '꿈속일까, 깨어난 뒤일까',
         intro: '황릉묘 장면은 시험에 자주 나와요. 일이 일어난 곳이 꿈속인지 깨어난 뒤인지 나누어 담으세요.',
         bins: [{ id: 'dream', label: '꿈속' }, { id: 'real', label: '깨어난 뒤' }],
         cards: [
@@ -348,7 +349,7 @@ window.STORY = [
 
   // ───────────────────────────── 5장 ─────────────────────────────
   {
-    id: 'ch5', no: '5장', title: '돌아온 진실',
+    id: 'ch5', no: '5장', title: '돌아온 진실', music: 'hope',
     hoemok: [
       { han: '夫人依止空門 羣小講成詩案', read: '부인의지공문 군소강성시안',
         gloss: '부인은 절에 몸을 맡기고, 소인배들은 시를 트집 잡아 옥사를 꾸미다',
@@ -363,7 +364,7 @@ window.STORY = [
     recap: '사씨는 남쪽으로 떠나 황릉묘의 꿈을 꾸고, 여승의 도움으로 동정호 군산 수월암에 몸을 맡겼다. 여승은 처녀 시절 관음찬의 그 여승이었다.',
     steps: [
       {
-        id: 'p5a', type: 'page', title: '벽 속의 목인', scene: null,
+        id: 'p5a', type: 'page', music: 'scheme', title: '벽 속의 목인', scene: null,
         paras: [
           '한편 유씨 집에서는 {교씨|gyo}와 {동청|dong}의 밀회가 들킬 뻔한 일이 있었다. {교씨|gyo}가 꿈자리가 사납다고 둘러대자, [한림|yeonsu]은 술사를 불러 집 안을 살피게 했다.',
           '술사가 벽 속에서 요사한 술법에 쓰는 **나무 인형(목인)**을 찾아냈다. 본래 교씨가 무녀 이십낭과 짜고 한림의 사랑을 붙들려고 묻어 둔 것이었다.',
@@ -372,7 +373,7 @@ window.STORY = [
         ],
       },
       {
-        id: 'c_poem', type: 'case', title: '시 한 편의 옥사', scene: null,
+        id: 'c_poem', type: 'case', music: 'scheme', title: '시 한 편의 옥사', scene: null,
         intro: '한림이 귀양을 가게 된 사연이에요. 쪽지를 읽고 다섯 군데를 채우세요.',
         clues: [
           { label: '쪽지 ① 백자당의 밀담', text: '목인 일로 한림이 의심을 품자, 교씨와 동청은 한림마저 없앨 궁리를 하였다.', words: ['교씨', '동청'] },
@@ -436,7 +437,7 @@ window.STORY = [
 
   // ───────────────────────────── 종장 ─────────────────────────────
   {
-    id: 'chE', no: '종장', title: '죄를 묻다',
+    id: 'chE', no: '종장', title: '죄를 묻다', music: 'resolve',
     hoemok: [
       { han: '小人惡稔身斃 天道否極泰來', read: '소인악임신폐 천도비극태래',
         gloss: '소인은 악이 무르익어 제 몸을 망치고, 하늘의 도리는 막힘이 다하면 트임이 오다',
@@ -463,7 +464,7 @@ window.STORY = [
         ],
       },
       {
-        id: 'pEc', type: 'page', title: '돌아온 교씨', scene: 'sc_judgment',
+        id: 'pEc', type: 'page', music: 'judgment', title: '돌아온 교씨', scene: 'sc_judgment',
         paras: [
           '{냉진|naengjin}마저 죽자 떠돌던 [교씨|gyo]는 결국 기생이 되었다.',
           '예부상서가 된 [유 상서|yeonsu]는 사람을 시켜 {교씨|gyo}를 속여 데려왔다. 그리고 그 죄를 하나하나 따졌다.',
@@ -471,7 +472,7 @@ window.STORY = [
         ],
       },
       {
-        id: 'ch_E', type: 'charges', title: '죄목 따지기',
+        id: 'ch_E', type: 'charges', music: 'judgment', title: '죄목 따지기',
         intro: '원작에서 유연수는 교씨의 죄를 하나하나 따졌어요(따진 죄목의 수와 문장은 이본마다 달라요). 아래 죄마다 알맞은 증거를 사건첩에서 골라 보세요.',
         charges: [
           { t: '노래 일로 원한을 품고 정실을 헐뜯은 죄', ev: 'c_song' },

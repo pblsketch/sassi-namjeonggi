@@ -44,6 +44,7 @@
       S().seenFiction.marks = true;
       box.appendChild(ui.card(Object.assign({ kind: 'fiction' }, NOTES.fiction.marks)));
     }
+    if (text.includes('여백의 메모')) G.audio.hint();
     box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function teacherSolve(fn) {
@@ -411,6 +412,7 @@
     }
     function wordKind(w) { return G.util.personOf(w) ? 'person' : /[다자고어워]$|알려|보여/.test(w) ? 'act' : 'thing'; }
     function addWords(ws, silent) {
+      let gained = false;
       for (const w of ws || []) {
         if (bank.has(w)) continue;
         const kind = wordKind(w), pid = G.util.personOf(w);
@@ -426,12 +428,13 @@
         });
         bank.set(w, chip);
         words.appendChild(chip);
-        if (!silent) G.audio.pick();
+        gained = true;
       }
+      if (gained && !silent) G.audio.clue(); // 새 낱말을 얻은 소리는 한 번만
       update();
     }
     function openSpot(sp, btn) {
-      G.audio.page();
+      G.audio.inspect();
       btn.classList.add('seen'); btn.classList.remove('glow');
       addWords(sp.words);
       ui.sheet([h('h3', sp.label), h('p', { style: { fontFamily: 'var(--serif)', lineHeight: 1.9 } }, markWords(sp.text, sp.words)),

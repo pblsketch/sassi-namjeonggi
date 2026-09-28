@@ -7,7 +7,8 @@
     mode: 'first',          // first: 처음 읽기(도입) / review: 다시 읽기(복습)
     font: 1,                // 글자 크기 배율
     sound: true,
-    music: false,           // 배경음(교실에서는 기본으로 끔)
+    music: true,            // 배경음(설정·타이틀 오른쪽 위에서 끌 수 있음)
+    av: 2,                  // 소리 설정 판(2: 배경음 기본 켜짐)
     teacher: false,
     name: '',
     sealed: false,          // 필사기에 이름 도장을 찍었는지
@@ -34,6 +35,7 @@
       try {
         const raw = localStorage.getItem(KEY);
         if (raw) S = Object.assign(fresh(), JSON.parse(raw));
+        if (S.av !== 2) { S.music = true; S.av = 2; } // 배경음이 기본으로 꺼져 있던 때의 저장을 한 번 켠다
       } catch (e) { /* 저장소를 못 쓰는 환경: 새로 시작 */ }
       return S;
     },

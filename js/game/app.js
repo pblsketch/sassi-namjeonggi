@@ -12,6 +12,8 @@
     map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="7" r="3"/><circle cx="12" cy="18" r="3"/><path d="M8.5 7.2 15.3 7M7.5 8.6l3.3 6.9M16.7 9.6l-3.5 6"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v14"/></svg>',
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>',
+    musicOn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+    musicOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M3 3l18 18"/></svg>',
   };
   const iconBtn = (name, label, fn) => h('button.icon-btn', { type: 'button', 'aria-label': label, title: label, html: ICON[name], on: { click: () => { G.audio.tap(); fn(); } } });
 
@@ -34,6 +36,7 @@
     leavePlay();
     const st = S();
     const started = Object.keys(st.done).length > 0;
+    G.audio.play('shop');
     const r = root(); r.innerHTML = '';
     const menu = h('div.menu');
     if (started) menu.appendChild(h('button.btn.primary', { on: { click: () => { G.audio.unlock(); app.continue(); } } }, '이어 하기'));
@@ -43,7 +46,18 @@
       h('div.art', { style: { backgroundImage: 'url(assets/ui/title_art.webp)' } }),
       h('div.logo', h('h1', '사씨남정기'), h('div.sub', '지워진 이름')),
       menu,
-      h('div.credit', '김만중 『사씨남정기』 학습 게임 · 이야기 글은 원작 줄거리를 새로 풀어 쓴 것이에요')));
+      h('div.credit', '김만중 『사씨남정기』 학습 게임 · 이야기 글은 원작 줄거리를 새로 풀어 쓴 것이에요'),
+      h('div.credit.maker', '만든이 박준일(온양여자고등학교 국어 교사)'),
+      musicToggle()));
+  };
+
+  // 타이틀 오른쪽 위의 배경음 켜기/끄기(설정의 '배경음'과 같은 값)
+  function musicToggle() {
+    const b = h('button.icon-btn.music-toggle', { type: 'button' });
+    const draw = () => { const on = S().music; b.innerHTML = ICON[on ? 'musicOn' : 'musicOff']; b.setAttribute('aria-label', on ? '배경음 끄기' : '배경음 켜기'); b.title = on ? '배경음 끄기' : '배경음 켜기'; b.classList.toggle('off', !on); };
+    b.addEventListener('click', () => { const st = S(); st.music = !st.music; G.save.write(); G.audio.unlock(); G.audio.music(st.music); G.audio.tap(); draw(); });
+    draw();
+    return b;
   };
 
   app.newGame = async function (confirmReset) {
@@ -76,6 +90,7 @@
 
   // ───────── 세책방 도입(게임 설정) ─────────
   app.shopIntro = async function () {
+    G.audio.play('shop');
     const r = root(); r.innerHTML = '';
     const main = h('div.main-inner');
     r.appendChild(h('div.stage', h('div.main', main)));
@@ -139,6 +154,8 @@
     const st = S();
     const ci = STORY.findIndex((c) => c.id === chId);
     const ch = STORY[ci];
+    G.audio.play(ch.music);
+    G.audio.chapter();
     const r = root(); r.innerHTML = '';
     const prog = h('i');
     const top = h('div.topbar',
@@ -171,6 +188,7 @@
       main.innerHTML = '';
       window.scrollTo({ top: 0 });
       ctx.tray(null);
+      G.audio.play(step.music || ch.music);
       const run = G.steps[step.type];
       if (run) await run(step, ctx);
       if (app._playToken !== token) return;
@@ -338,7 +356,7 @@
         const b = h('button.btn.small' + (st[key] === v ? '.primary' : ''), { type: 'button' }, t);
         b.addEventListener('click', () => {
           G.audio.tap(); st[key] = v; G.save.write(); app.applySettings();
-          if (key === 'music' || key === 'sound') G.audio.music(st.music);
+          if (key === 'music') G.audio.music(st.music);
           $$('.btn', b.parentNode).forEach((x) => x.classList.toggle('primary', x === b));
         });
         return b;
@@ -351,6 +369,7 @@
       seg('배경음', 'music', [[true, '켜기'], [false, '끄기']]),
       seg('선생님용', 'teacher', [[false, '끄기'], [true, '모든 장 열기 + 정답 채우기']]),
       h('p.small.muted', '진행 상황은 이 브라우저에만 저장돼요(서버로 보내지 않아요).'),
+      h('p.small.muted', '만든이 박준일(온양여자고등학교 국어 교사)'),
     ], [{ label: '처음부터 새로', value: 'reset' }, { label: '타이틀로', value: 'title' }, { label: '닫기', value: true, cls: 'primary' }]);
     if (res === 'reset') app.newGame(true);
     if (res === 'title') app.title();
@@ -389,6 +408,7 @@
   app.result = async function () {
     G.ui.unpop();
     leavePlay();
+    G.audio.play('finale');
     const st = S();
     if (!st.finishedAt) { st.finishedAt = Date.now(); G.save.write(); }
     const r = root(); r.innerHTML = '';

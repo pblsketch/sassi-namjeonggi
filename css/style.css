@@ -79,6 +79,9 @@ b { font-weight: 700; }
 .title-screen .sub { font-family: var(--serif); font-size: clamp(20px, 5.4vw, 30px); margin-top: .3em; font-weight: 700; color: var(--seal); letter-spacing: .3em; }
 .title-screen .menu { position: relative; display: flex; flex-direction: column; gap: 10px; width: min(360px, 100%); }
 .title-screen .credit { position: relative; margin-top: 14px; font-size: .78em; color: var(--ink-2); }
+.title-screen .credit.maker { margin-top: 4px; }
+.title-screen .music-toggle { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; background: rgba(250,244,230,.85); }
+.title-screen .music-toggle.off { color: var(--ink-2); }
 .seal-mark { display: inline-block; border: 2px solid var(--seal); color: var(--seal); font-family: var(--serif); font-weight: 700; padding: 1px 6px; border-radius: 4px; transform: rotate(-4deg); font-size: .8em; letter-spacing: .05em; background: rgba(255,255,255,.35); }
 
 /* ───────── 상단 막대 ───────── */
