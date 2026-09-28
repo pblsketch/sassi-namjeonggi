@@ -146,7 +146,18 @@ for (const s of steps) {
 }
 for (const id in PEOPLE) for (const f of Object.values(typeof PEOPLE[id].pt === 'string' ? { a: PEOPLE[id].pt } : PEOPLE[id].pt)) if (!ASSET(`assets/pt/${f}.webp`)) bad(`초상 없음: ${id} ${f}`);
 for (const id in sandbox.FRAME_PEOPLE) if (!ASSET(`assets/pt/${sandbox.FRAME_PEOPLE[id].pt}.webp`)) bad(`초상 없음: ${id}`);
-for (const f of ['assets/ui/paper.webp', 'assets/ui/title_art.webp', 'assets/sc/sc_bookshop.webp', 'assets/ui/icon-192.png', 'assets/ui/icon-512.png', 'assets/ui/og-image.jpg', 'assets/fonts/myeongjo.woff2', 'assets/fonts/myeongjo-bold.woff2', 'assets/fonts/brush.woff2']) if (!ASSET(f)) bad(`파일 없음: ${f}`);
+for (const f of ['assets/ui/paper.webp', 'assets/ui/title_art.webp', 'assets/sc/sc_bookshop.webp', 'assets/ui/icon-192.png', 'assets/ui/icon-512.png', 'assets/ui/og-image.jpg', 'assets/ui/og-cover.jpg', 'assets/fonts/myeongjo.woff2', 'assets/fonts/myeongjo-bold.woff2', 'assets/fonts/brush.woff2']) if (!ASSET(f)) bad(`파일 없음: ${f}`);
+// 링크 미리보기: og:image·twitter:image는 절대 주소이고, 그 파일이 저장소에 있어야 한다. 크기 정보도 적혀 있어야 한다
+{
+  const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const imgs = [...html.matchAll(/<meta (?:property|name)="(?:og:image|og:image:secure_url|twitter:image)" content="([^"]+)"/g)].map((m) => m[1]);
+  if (imgs.length < 3) bad('링크 미리보기 그림 태그가 모자람');
+  for (const u of imgs) {
+    if (!u.startsWith('https://pblsketch.github.io/sassi-namjeonggi/')) bad('미리보기 그림은 절대 주소여야 함: ' + u);
+    else if (!ASSET(u.replace('https://pblsketch.github.io/sassi-namjeonggi/', ''))) bad('미리보기 그림 파일 없음: ' + u);
+  }
+  for (const k of ['og:image:width', 'og:image:height', 'og:title', 'og:description', 'og:url', 'twitter:card']) if (!html.includes('"' + k + '"')) bad('미리보기 태그 없음: ' + k);
+}
 
 // 9) 인물 위치: 관계도 동그라미(반지름 5)가 겹치지 않는지
 const ids = Object.keys(PEOPLE);
