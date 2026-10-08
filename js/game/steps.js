@@ -12,12 +12,19 @@
   function actionBtn(label, cls, onClick) {
     return h('button.btn' + (cls ? '.' + cls : ''), { type: 'button', on: { click: () => { G.audio.tap(); onClick(); } } }, label);
   }
-  // Enter를 게임 진행에 써도 되는 때: 판·편람이 떠 있지 않고, 다른 버튼·입력 칸에 포커스가 없을 때
-  // (포커스가 있는 버튼·호칭 칸은 제 Enter를 그대로 받는다)
+  // Enter를 게임 진행에 써도 되는 때: 판·편람이 떠 있지 않고, 키보드로 옮겨 간 버튼·입력 칸에 포커스가 없을 때
+  // (Tab으로 고른 버튼·호칭 칸은 제 Enter를 그대로 받는다. 마우스로 누른 인물·호칭에 포커스가 남아 있으면
+  //  Enter가 그 인물을 다시 눌러 다음 호칭에 같은 인물을 적어 버리므로, 그때는 읽기 진행에 쓴다)
+  // (:focus-visible은 키를 누르는 순간 켜져 버려서 쓸 수 없다. 마지막으로 포커스를 옮긴 것이 마우스·터치인지 Tab인지 직접 기억한다)
+  let byPointer = true;
+  document.addEventListener('pointerdown', () => { byPointer = true; }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) byPointer = false; }, true);
   function enterFree(e, own) {
     if (document.querySelector('.sheet-back, .overlay')) return false;
     const t = e.target;
-    if (t && t !== own && t !== document.body && t.closest && t.closest('button, a, input, textarea, select, [role="button"], [tabindex]')) return false;
+    if (!t || t === own || t === document.body || !t.closest) return true;
+    if (t.closest('input, textarea, select')) return false;
+    if (t.closest('button, a, [role="button"], [tabindex]')) return byPointer;
     return true;
   }
   steps.enterFree = enterFree;

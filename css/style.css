@@ -272,6 +272,8 @@ mark.w { background: linear-gradient(transparent 55%, rgba(184,137,46,.45) 55%);
   border: 4px solid var(--seal); color: var(--seal); font-family: var(--serif); font-weight: 700; font-size: 34px; padding: 4px 14px; border-radius: 8px; background: rgba(255,250,240,.7);
   animation: stampin .55s cubic-bezier(.2,1.6,.4,1) forwards; letter-spacing: .08em; }
 @keyframes stampin { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-8deg) scale(2.4); } 45% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(.95); } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); } }
+.stampfx .han { display: block; }
+.stampfx .rd { display: block; text-align: center; font-size: 15px; letter-spacing: .4em; margin-right: -.4em; margin-top: -2px; }
 .stampfx.out { transition: opacity .5s; opacity: 0 !important; }
 .shake { animation: shake .35s; }
 @keyframes shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }

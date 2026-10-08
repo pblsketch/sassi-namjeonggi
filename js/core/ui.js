@@ -47,12 +47,14 @@
     });
   };
 
+  // 도장 글자는 한자로 찍고, 아래에 한글 읽기를 함께 보인다
+  const STAMP_READ = { 確認: '확인', 復元: '복원', 斷罪: '단죄' };
   ui.stamp = async function (text = '確認') {
     G.audio.stamp();
-    const el = h('div.stampfx', text);
+    const el = h('div.stampfx', { 'aria-hidden': 'true' }, h('span.han', text), STAMP_READ[text] ? h('span.rd', STAMP_READ[text]) : null);
     document.body.appendChild(el);
     ui.inkBurst(window.innerWidth / 2, window.innerHeight * 0.42);
-    await G.util.wait(900);
+    await G.util.wait(1400);
     el.classList.add('out');
     setTimeout(() => el.remove(), 600);
   };
